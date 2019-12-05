@@ -10,13 +10,14 @@ import (
 	"syscall"
 )
 
-func CopyDirectory(scrDir, dest string) error {
-	entries, err := ioutil.ReadDir(scrDir)
+// CopyDirectory will copy the contents of a directory
+func CopyDirectory(src, dest string) error {
+	entries, err := ioutil.ReadDir(src)
 	if err != nil {
 		return err
 	}
 	for _, entry := range entries {
-		sourcePath := filepath.Join(scrDir, entry.Name())
+		sourcePath := filepath.Join(src, entry.Name())
 		destPath := filepath.Join(dest, entry.Name())
 
 		fileInfo, err := os.Stat(sourcePath)
@@ -31,7 +32,7 @@ func CopyDirectory(scrDir, dest string) error {
 
 		switch fileInfo.Mode() & os.ModeType {
 		case os.ModeDir:
-			if err := CreateIfNotExists(destPath, 0755); err != nil {
+			if err := CreateIfNotExists(destPath, os.ModePerm); err != nil {
 				return err
 			}
 			if err := CopyDirectory(sourcePath, destPath); err != nil {
@@ -61,8 +62,9 @@ func CopyDirectory(scrDir, dest string) error {
 	return nil
 }
 
-func Copy(srcFile, dstFile string) error {
-	out, err := os.Create(dstFile)
+// Copy will copy the file
+func Copy(srcFile, destFile string) error {
+	out, err := os.Create(destFile)
 	defer out.Close()
 	if err != nil {
 		return err
@@ -82,6 +84,7 @@ func Copy(srcFile, dstFile string) error {
 	return nil
 }
 
+// Exists will chek if the file exists
 func Exists(filePath string) bool {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return false
@@ -90,6 +93,7 @@ func Exists(filePath string) bool {
 	return true
 }
 
+// CreateIfNotExists will create a directory
 func CreateIfNotExists(dir string, perm os.FileMode) error {
 	if Exists(dir) {
 		return nil
@@ -102,6 +106,7 @@ func CreateIfNotExists(dir string, perm os.FileMode) error {
 	return nil
 }
 
+// CopySymLink will copy sym link files
 func CopySymLink(source, dest string) error {
 	link, err := os.Readlink(source)
 	if err != nil {
@@ -118,19 +123,15 @@ func check(e error) {
 
 func main() {
 	var src = flag.String("src", "/Users/mblode/Library/Mobile Documents/27N4MQEA55~pro~writer/Documents/", "The folder where the files should be copied from")
-	var dist = flag.String("dist", "/Users/mblode/Google Drive/Backups/Notes", "The folder that the files should be copied to")
+	var dest = flag.String("dest", "/Users/mblode/Google Drive/Backups/Notes", "The folder that the files should be copied to")
 	flag.Parse()
 
-	if _, err := os.Stat(*dist); os.IsNotExist(err) {
-		// check(err)
+	if err := CreateIfNotExists(*dest, os.ModePerm); err != nil {
 		fmt.Println(err)
-		os.MkdirAll(*dist, os.ModePerm)
-		fmt.Println("Successfully created new directory")
 	}
 
-	err := CopyDirectory(*src, *dist)
+	err := CopyDirectory(*src, *dest)
 	check(err)
 
 	fmt.Println("Successfully copied files")
-
 }
