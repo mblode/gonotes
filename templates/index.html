@@ -1,0 +1,9 @@
+{{ template "header.html" .}}
+
+    <ul>
+        {{ range .directories }}
+            <li><a href="/{{ .Slug }}">{{ .Title }}</a></li>
+        {{ end }}
+    </ul>
+
+{{ template "footer.html" .}}

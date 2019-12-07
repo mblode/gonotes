@@ -1,0 +1,9 @@
+{{ template "header.html" .}}
+
+    <ul>
+        {{ range .posts }}
+            <li><a href="/{{ .Slug }}">{{ .Title }}</a></li>
+        {{ end }}
+    </ul>
+
+{{ template "footer.html" .}}
