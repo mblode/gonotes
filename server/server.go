@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strings"
 
-	"github.com/gin-contrib/static"
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"github.com/yuin/goldmark"
 )
 
@@ -28,6 +30,14 @@ type Item struct {
 	WordCount int
 }
 
+type Template struct {
+	templates *template.Template
+}
+
+func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.templates.ExecuteTemplate(w, name, data)
+}
+
 // WordCount implementation
 func WordCount(s string) int {
 
@@ -41,29 +51,29 @@ func WordCount(s string) int {
 	return len(wordCountMap)
 }
 
-// // GetIndex is for the index
-// func (e *Env) GetIndex(c *gin.Context) {
-// 	var items []Item
+// GetIndex is for the index
+func (e *Env) GetIndex(c echo.Context) error {
+	var items []Item
 
-// 	files, err := ioutil.ReadDir(e.dest)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+	files, err := ioutil.ReadDir(e.dest)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// 	for _, file := range files {
-// 		if !strings.HasPrefix(file.Name(), ".") {
-// 			items = append(items, Item{Slug: file.Name(), Title: file.Name()})
-// 		}
-// 	}
+	for _, file := range files {
+		if !strings.HasPrefix(file.Name(), ".") {
+			items = append(items, Item{Slug: "notes/" + file.Name(), Title: file.Name()})
+		}
+	}
 
-// 	c.HTML(http.StatusOK, "index.html", gin.H{
-// 		"Title": "Home",
-// 		"Items": items,
-// 	})
-// }
+	return c.Render(http.StatusOK, "index.html", map[string]interface{}{
+		"Title": "Home",
+		"Items": items,
+	})
+}
 
 // GetNotes is for the notes
-func (e *Env) GetNotes(c *gin.Context) {
+func (e *Env) GetNotes(c echo.Context) error {
 	var items []Item
 
 	var wordCount int
@@ -113,8 +123,8 @@ func (e *Env) GetNotes(c *gin.Context) {
 		files, err := ioutil.ReadDir(fileName)
 		if err != nil {
 			fmt.Println(err)
-			c.HTML(http.StatusNotFound, "error.html", nil)
-			return
+			c.HTML(http.StatusNotFound, "error.html")
+			return err
 		}
 
 		for _, file := range files {
@@ -138,8 +148,8 @@ func (e *Env) GetNotes(c *gin.Context) {
 
 					if err != nil {
 						fmt.Println(err)
-						c.HTML(http.StatusNotFound, "error.html", nil)
-						return
+						c.HTML(http.StatusNotFound, "error.html")
+						return err
 					}
 
 					itemWordCount = WordCount(string(file))
@@ -153,8 +163,8 @@ func (e *Env) GetNotes(c *gin.Context) {
 
 		if err != nil {
 			fmt.Println(err)
-			c.HTML(http.StatusNotFound, "error.html", nil)
-			return
+			c.HTML(http.StatusNotFound, "error.html")
+			return err
 		}
 
 		wordCount = WordCount(string(file))
@@ -169,7 +179,7 @@ func (e *Env) GetNotes(c *gin.Context) {
 
 	item := Item{Title: fileTitle, Content: content, FileType: fileType, WordCount: wordCount}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{
+	return c.Render(http.StatusOK, "notes.html", map[string]interface{}{
 		"Items":     items,
 		"Title":     item.Title,
 		"Content":   item.Content,
@@ -180,21 +190,31 @@ func (e *Env) GetNotes(c *gin.Context) {
 
 // Process is the main function for Gin
 func Process(dest string) error {
-	router := gin.Default()
-	router.Use(gin.Logger())
-	router.Delims("{{", "}}")
+	e := echo.New()
 
-	router.Use(static.Serve("/assets", static.LocalFile("/assets", false)))
-	router.LoadHTMLGlob("./templates/*.html")
+	// Middleware
+	e.Use(middleware.Logger())
 
+	e.Use(middleware.Recover())
+
+	// e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+	// 	Root:   "assets",
+	// 	Browse: false,
+	// }))
+
+	// Templates
+	t := &Template{
+		templates: template.Must(template.ParseGlob("templates/*.html")),
+	}
+
+	e.Renderer = t
+
+	// Routing
 	env := &Env{dest: dest}
-	router.GET("/", env.GetNotes)
-	router.GET("/:path1", env.GetNotes)
-	router.GET("/:path1/:path2", env.GetNotes)
-	router.GET("/:path1/:path2/:path3", env.GetNotes)
-	router.GET("/:path1/:path2/:path3/:path4", env.GetNotes)
+	e.GET("/", env.GetIndex)
+	e.GET("/notes/*", env.GetNotes)
 
-	router.Run()
+	e.Logger.Fatal(e.Start(":8000"))
 
 	return nil
 }

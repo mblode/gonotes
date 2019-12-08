@@ -1,5 +1,7 @@
 {{ template "header.html" .}}
 
+    <h3>{{.FileType}}</h3>
+
     <ul>
         {{ range .Items }}
             <li>
@@ -8,5 +10,7 @@
             </li>
         {{ end }}
     </ul>
+
+    {{.Content}}
 
 {{ template "footer.html" .}}
