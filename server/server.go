@@ -12,9 +12,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/tylerb/graceful"
 	"github.com/yuin/goldmark"
 )
 
@@ -203,11 +205,11 @@ func (e *Env) GetNotes(c echo.Context) error {
 }
 
 // Process is the main function for Gin
-func Process(dest string) error {
+func Process(dest string, port string) error {
 	e := echo.New()
 
 	// Middleware
-	e.Use(middleware.Logger())
+	// e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
 	// Templates
@@ -223,7 +225,10 @@ func Process(dest string) error {
 	e.GET("/notes", env.GetNotes)
 	e.GET("/notes/*", env.GetNotes)
 
-	e.Logger.Fatal(e.Start(":3000"))
+	fmt.Println("Web server running successfully at http://localhost:"+port)
+
+	e.Server.Addr = ":" + port // Serve it like a boss
+	graceful.ListenAndServe(e.Server, 5*time.Second)
 
 	return nil
 }

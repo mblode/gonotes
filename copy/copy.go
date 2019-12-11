@@ -11,7 +11,7 @@ import (
 )
 
 // Directory will copy the contents of a directory
-func Directory(src string, dest string, numberOfDocs *int) error {
+func Directory(src string, dest string) error {
 	if err := CreateIfNotExists(dest, os.ModePerm); err != nil {
 		return nil
 	}
@@ -44,7 +44,7 @@ func Directory(src string, dest string, numberOfDocs *int) error {
 				return err
 			}
 
-			if err := Directory(sourcePath, destPath, numberOfDocs); err != nil {
+			if err := Directory(sourcePath, destPath); err != nil {
 				return err
 			}
 		case os.ModeSymlink:
@@ -52,7 +52,7 @@ func Directory(src string, dest string, numberOfDocs *int) error {
 				return err
 			}
 		default:
-			if err := File(sourcePath, destPath, numberOfDocs); err != nil {
+			if err := File(sourcePath, destPath); err != nil {
 				return err
 			}
 		}
@@ -68,11 +68,12 @@ func Directory(src string, dest string, numberOfDocs *int) error {
 			}
 		}
 	}
+
 	return nil
 }
 
 // File will copy the file
-func File(srcFile string, dest string, numberOfDocs *int) error {
+func File(srcFile string, dest string) error {
 	out, err := os.Create(dest)
 	defer out.Close()
 
@@ -92,8 +93,6 @@ func File(srcFile string, dest string, numberOfDocs *int) error {
 	if err != nil {
 		return err
 	}
-
-	*numberOfDocs++
 
 	return nil
 }
@@ -146,4 +145,15 @@ func HomeDir() string {
 		}
 	}
 	return os.Getenv("HOME")
+}
+
+// Process for top level function for copying directory
+func Process(src string, dest string) error {
+	err := Directory(src, dest)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Folder successfully copied to " + dest)
+	return nil
 }
