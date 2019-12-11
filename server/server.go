@@ -78,6 +78,7 @@ func (e *Env) GetIndex(c echo.Context) error {
 
 	return c.Render(http.StatusOK, "index.html", map[string]interface{}{
 		"Title": "Home",
+		"Path":  e.dest,
 		"Items": items,
 	})
 }
@@ -167,9 +168,7 @@ func (e *Env) GetNotes(c echo.Context) error {
 			"Items":       items,
 			"Path":        item.Path,
 			"Title":       item.Title,
-			"Content":     item.Content,
 			"FileType":    item.FileType,
-			"WordCount":   item.WordCount,
 			"Breadcrumbs": breadcrumbs,
 		})
 	default:
@@ -208,6 +207,8 @@ func (e *Env) GetNotes(c echo.Context) error {
 func Process(dest string, port string) error {
 	e := echo.New()
 
+	e.Static("/assets", "assets")
+
 	// Middleware
 	// e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
@@ -225,7 +226,7 @@ func Process(dest string, port string) error {
 	e.GET("/notes", env.GetNotes)
 	e.GET("/notes/*", env.GetNotes)
 
-	fmt.Println("Web server running successfully at http://localhost:"+port)
+	fmt.Println("Web server running successfully at http://localhost:" + port)
 
 	e.Server.Addr = ":" + port // Serve it like a boss
 	graceful.ListenAndServe(e.Server, 5*time.Second)

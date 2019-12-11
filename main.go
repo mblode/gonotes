@@ -56,12 +56,7 @@ func main() {
 				Aliases: []string{"s"},
 				Usage:   "Open a web based file viewer",
 				Action: func(c *cli.Context) error {
-					err := copy.Process(c.String("src"), c.String("dest"))
-					if err != nil {
-						return err
-					}
-
-					err = server.Process(c.String("dest"), c.String("port"))
+					err := server.Process(c.String("src"), c.String("port"))
 					if err != nil {
 						return err
 					}

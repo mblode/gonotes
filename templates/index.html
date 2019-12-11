@@ -6,9 +6,9 @@
         </ol>
     </nav>
 
-    <h3>{{.Title}}</h3>
+    <a href="vscode://file/{{ .Path }}/" class="mb-4 d-inline-block">Open in VSCode</a>
 
-    <a href="vscode://file/{{ .Path }}/" class="mb-4 d-inline-block" target="_blank">Open in VSCode</a>
+    <h3 class="mb-4">{{.Title}}</h3>
 
     <ul class="list-group">
         {{ range .Items }}

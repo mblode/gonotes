@@ -2,11 +2,11 @@
 
     {{ template "breadcrumbs.html" .}}
 
-    <h3>{{.Title}}</h3>
-
     <div class="mb-4">
-        <a href="vscode://file/{{ .Path }}/" class="d-inline-block" target="_blank">Open in VSCode</a>
+        <a href="vscode://file/{{ .Path }}/" class="d-inline-block">Open in VSCode</a>
     </div>
+
+    <h3 class="mb-4">{{.Title}}</h3>
 
     <ul class="list-group">
         {{ range .Items }}
