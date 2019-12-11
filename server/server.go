@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/labstack/echo"
@@ -24,31 +26,37 @@ type Env struct {
 // Item struct for markdown
 type Item struct {
 	Slug      string
+	Path      string
 	Title     string
 	Content   template.HTML
 	FileType  string
 	WordCount int
 }
 
+// Breadcrumb struct for items
+type Breadcrumb struct {
+	Title string
+	Slug  string
+}
+
+// Template struct for HTML
 type Template struct {
 	templates *template.Template
 }
 
+// Render the HTML template
 func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return t.templates.ExecuteTemplate(w, name, data)
 }
 
 // WordCount implementation
-func WordCount(s string) int {
+func WordCount(str string) int {
+	// Match non-space character sequences.
+	re := regexp.MustCompile(`[\S]+`)
 
-	words := strings.Fields(s)
-	wordCountMap := make(map[string]int)
-
-	for _, word := range words {
-		wordCountMap[word]++
-	}
-
-	return len(wordCountMap)
+	// Find all matches and return count.
+	results := re.FindAllString(str, -1)
+	return len(results)
 }
 
 // GetIndex is for the index
@@ -75,52 +83,44 @@ func (e *Env) GetIndex(c echo.Context) error {
 // GetNotes is for the notes
 func (e *Env) GetNotes(c echo.Context) error {
 	var items []Item
+	var breadcrumbs []Breadcrumb
 
 	var wordCount int
-
-	path1 := c.Param("path1")
-	path2 := c.Param("path2")
-	path3 := c.Param("path3")
-	path4 := c.Param("path4")
+	param := c.Param("*")
+	filePath := e.dest + "/" + param
 	fileType := "File"
-
-	fileName := e.dest + "/" + path1
-	fileTitle := "Home"
-
-	if path1 != "" {
-		fileName = path1
-		fileTitle = path1
-	}
-
-	if path2 != "" {
-		fileName += "/" + path2
-		fileTitle = path2
-	}
-
-	if path3 != "" {
-		fileName += "/" + path3
-		fileTitle = path3
-	}
-
-	if path4 != "" {
-		fileName += "/" + path4
-		fileTitle = path4
-	}
-
 	content := template.HTML("")
+	fileTitle := filepath.Base(filePath)
+	fileExtension := filepath.Ext(filePath)
+	fileTitle = fileTitle[0 : len(fileTitle)-len(fileExtension)]
 
-	fi, err := os.Stat(fileName)
+	breadcrumbSplit := strings.Split(param, "/")
+	breadcrumbPath := "/notes"
+	breadcrumbs = append(breadcrumbs, Breadcrumb{Title: "Home", Slug: breadcrumbPath})
+	breadcrumbPath = breadcrumbPath + "/"
+
+	for index, item := range breadcrumbSplit {
+		if item != "" {
+			if index == len(breadcrumbSplit)-1 {
+				breadcrumbs = append(breadcrumbs, Breadcrumb{Title: item, Slug: ""})
+				breadcrumbPath += item + "/"
+			} else {
+				breadcrumbs = append(breadcrumbs, Breadcrumb{Title: item, Slug: breadcrumbPath + item})
+				breadcrumbPath += item + "/"
+			}
+		}
+	}
+
+	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	fmt.Println(fileName)
-
-	switch mode := fi.Mode(); {
-	case mode.IsDir():
+	switch fileInfo.Mode() & os.ModeType {
+	case os.ModeDir:
 		fileType = "Directory"
 
-		files, err := ioutil.ReadDir(fileName)
+		files, err := ioutil.ReadDir(filePath)
 		if err != nil {
 			fmt.Println(err)
 			c.HTML(http.StatusNotFound, "error.html")
@@ -128,23 +128,23 @@ func (e *Env) GetNotes(c echo.Context) error {
 		}
 
 		for _, file := range files {
-			fmt.Println(file.Name())
-
 			if !strings.HasPrefix(file.Name(), ".") {
-				itemSlug := strings.Replace(fileName+"/"+file.Name(), e.dest, "", -1)
+				var itemWordCount int
+				itemPath := filePath + "/" + file.Name()
+				itemSlug := strings.Replace(itemPath, e.dest, "", -1)
+				itemSlug = strings.Replace(itemSlug, "//", "/", -1)
+				itemFileType := "File"
 
-				if fileName == "/" {
-					itemSlug = strings.Replace(file.Name(), "//", "/", -1)
+				itemFileInfo, err := os.Stat(itemPath)
+				if err != nil {
+					fmt.Println(err)
 				}
 
-				var itemWordCount int
-
-				itemFileType := "File"
-				switch mode := fi.Mode(); {
+				switch mode := itemFileInfo.Mode(); {
 				case mode.IsDir():
 					itemFileType = "Directory"
 				case mode.IsRegular():
-					file, err := ioutil.ReadFile(file.Name())
+					itemFile, err := ioutil.ReadFile(itemPath)
 
 					if err != nil {
 						fmt.Println(err)
@@ -152,14 +152,26 @@ func (e *Env) GetNotes(c echo.Context) error {
 						return err
 					}
 
-					itemWordCount = WordCount(string(file))
+					itemWordCount = WordCount(string(itemFile))
 				}
 
-				items = append(items, Item{Slug: itemSlug, Title: file.Name(), Content: content, FileType: itemFileType, WordCount: itemWordCount})
+				items = append(items, Item{Slug: "/notes" + itemSlug, Path: itemPath, Title: file.Name(), Content: content, FileType: itemFileType, WordCount: itemWordCount})
 			}
 		}
-	case mode.IsRegular():
-		file, err := ioutil.ReadFile(fileName)
+
+		item := Item{Path: filePath, Title: fileTitle, Content: content, FileType: fileType, WordCount: wordCount}
+
+		return c.Render(http.StatusOK, "directory.html", map[string]interface{}{
+			"Items":       items,
+			"Path":        item.Path,
+			"Title":       item.Title,
+			"Content":     item.Content,
+			"FileType":    item.FileType,
+			"WordCount":   item.WordCount,
+			"Breadcrumbs": breadcrumbs,
+		})
+	default:
+		file, err := ioutil.ReadFile(filePath)
 
 		if err != nil {
 			fmt.Println(err)
@@ -175,17 +187,19 @@ func (e *Env) GetNotes(c echo.Context) error {
 		}
 
 		content = template.HTML(buf.String())
+
+		item := Item{Path: filePath, Title: fileTitle, Content: content, FileType: fileType, WordCount: wordCount}
+
+		return c.Render(http.StatusOK, "file.html", map[string]interface{}{
+			"Items":       items,
+			"Path":        item.Path,
+			"Title":       item.Title,
+			"Content":     item.Content,
+			"FileType":    item.FileType,
+			"WordCount":   item.WordCount,
+			"Breadcrumbs": breadcrumbs,
+		})
 	}
-
-	item := Item{Title: fileTitle, Content: content, FileType: fileType, WordCount: wordCount}
-
-	return c.Render(http.StatusOK, "notes.html", map[string]interface{}{
-		"Items":     items,
-		"Title":     item.Title,
-		"Content":   item.Content,
-		"FileType":  item.FileType,
-		"WordCount": item.WordCount,
-	})
 }
 
 // Process is the main function for Gin
@@ -194,13 +208,7 @@ func Process(dest string) error {
 
 	// Middleware
 	e.Use(middleware.Logger())
-
 	e.Use(middleware.Recover())
-
-	// e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
-	// 	Root:   "assets",
-	// 	Browse: false,
-	// }))
 
 	// Templates
 	t := &Template{
@@ -212,9 +220,10 @@ func Process(dest string) error {
 	// Routing
 	env := &Env{dest: dest}
 	e.GET("/", env.GetIndex)
+	e.GET("/notes", env.GetNotes)
 	e.GET("/notes/*", env.GetNotes)
 
-	e.Logger.Fatal(e.Start(":8000"))
+	e.Logger.Fatal(e.Start(":3000"))
 
 	return nil
 }

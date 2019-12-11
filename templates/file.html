@@ -1,0 +1,15 @@
+{{ template "header.html" .}}
+
+    {{ template "breadcrumbs.html" .}}
+
+    <div class="mb-4">
+        <a href="vscode://file/{{ .Path }}" class="d-inline-block" target="_blank">Open in VSCode</a>
+
+        {{ if eq .WordCount 0 }}{{ else }}
+            <span class="text-muted">&middot; Word count: {{ .WordCount }}</span>
+        {{ end }}
+    </div>
+
+    {{.Content}}
+
+{{ template "footer.html" .}}

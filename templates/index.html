@@ -1,10 +1,29 @@
 {{ template "header.html" .}}
 
-    <ul>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item active" aria-current="page">{{ .Title }}</li>
+        </ol>
+    </nav>
+
+    <h3>{{.Title}}</h3>
+
+    <a href="vscode://file/{{ .Path }}/" class="mb-4 d-inline-block" target="_blank">Open in VSCode</a>
+
+    <ul class="list-group">
         {{ range .Items }}
-            <li>
-                <a href="{{ .Slug }}">{{ .Title }}</a>
-                <span>{{ .FileType }}</p> <span>{{ .WordCount }}</span>
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{{ .Slug }}" class="w-full">{{ .Title }}</a>
+
+                    {{ if eq .WordCount 0 }}{{ else }}
+                        <span class="badge badge-primary badge-pill">{{ .WordCount }}</span>
+                    {{ end }}
+                </div>
+
+                <div>
+                    <span class="small text-muted">{{ .FileType }}</span>
+                </div>
             </li>
         {{ end }}
     </ul>

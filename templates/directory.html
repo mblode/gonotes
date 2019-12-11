@@ -1,0 +1,25 @@
+{{ template "header.html" .}}
+
+    {{ template "breadcrumbs.html" .}}
+
+    <h3>{{.Title}}</h3>
+
+    <div class="mb-4">
+        <a href="vscode://file/{{ .Path }}/" class="d-inline-block" target="_blank">Open in VSCode</a>
+    </div>
+
+    <ul class="list-group">
+        {{ range .Items }}
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{{ .Slug }}">{{ .Title }}</a>
+                </div>
+
+                <div>
+                    <span class="small text-muted">{{ .FileType }}</span>
+                </div>
+            </li>
+        {{ end }}
+    </ul>
+
+{{ template "footer.html" .}}
