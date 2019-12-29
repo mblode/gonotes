@@ -8,6 +8,7 @@ require (
 	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.10 // indirect
+	github.com/spf13/cobra v0.0.5
 	github.com/tylerb/graceful v1.2.15
 	github.com/urfave/cli/v2 v2.0.0
 	github.com/valyala/fasttemplate v1.1.0 // indirect

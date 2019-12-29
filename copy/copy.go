@@ -11,7 +11,7 @@ import (
 )
 
 // Directory will copy the contents of a directory
-func Directory(src string, dest string) error {
+func Directory() error {
 	if err := CreateIfNotExists(dest, os.ModePerm); err != nil {
 		return nil
 	}
@@ -134,22 +134,27 @@ func SymLink(source, dest string) error {
 func HomeDir() string {
 	if runtime.GOOS == "windows" {
 		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+
 		if home == "" {
 			home = os.Getenv("USERPROFILE")
 		}
+
 		return home
 	} else if runtime.GOOS == "linux" {
 		home := os.Getenv("XDG_CONFIG_HOME")
+
 		if home != "" {
 			return home
 		}
 	}
+
 	return os.Getenv("HOME")
 }
 
 // Process for top level function for copying directory
-func Process(src string, dest string) error {
-	err := Directory(src, dest)
+func Process() error {
+
+	err := Directory()
 	if err != nil {
 		return err
 	}
