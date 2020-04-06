@@ -27,7 +27,7 @@ func main() {
 			&cli.StringFlag{
 				Name:    "src",
 				Aliases: []string{"i"},
-				Value:   homeDir + "/Library/Mobile Documents/27N4MQEA55~pro~writer/Documents/",
+				Value:   homeDir + "/Google Drive/Notes",
 				Usage:   "Input source directory from `FOLDER`",
 			},
 			&cli.StringFlag{
